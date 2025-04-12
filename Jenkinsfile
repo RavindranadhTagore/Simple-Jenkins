@@ -2,33 +2,40 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/RavindranadhTagore'
+                checkout scm
             }
         }
-
         stage('Build') {
             steps {
-                script {
-                    docker.build('my-app-image')
-                }
+                echo 'Building the application...'
+                // Add your build commands here, e.g., Maven, Gradle, npm, etc.
             }
         }
-
         stage('Test') {
             steps {
-                echo 'Running tests (placeholder)'
-                // Ideally use a test framework here
+                echo 'Running tests...'
+                // Add your test commands here
             }
         }
-
         stage('Deploy') {
             steps {
-                script {
-                    docker.image('my-app-image').run('-d -p 5000:5000')
-                }
+                echo 'Deploying the application...'
+                // Add your deployment commands here
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
+        success {
+            echo 'Pipeline succeeded.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
