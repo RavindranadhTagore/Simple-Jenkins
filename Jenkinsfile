@@ -1,41 +1,55 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "my-app"
+        IMAGE_TAG = "latest"
+        REGISTRY = "ravindranadhtagore"
+    }
+
     stages {
         stage('Checkout') {
             steps {
+                echo "Checking out source code..."
                 checkout scm
             }
         }
-        stage('Build') {
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Building the application...'
-                // Add your build commands here, e.g., Maven, Gradle, npm, etc.
+                echo "Building Docker image..."
+                sh "docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
-        stage('Test') {
+
+        stage('Push Docker Image') {
             steps {
-                echo 'Running tests...'
-                // Add your test commands here
+                echo "Logging into Docker and pushing image..."
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
+                    sh "docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "docker logout"
+                }
             }
         }
-        stage('Deploy') {
+
+        stage('Deploy Application') {
             steps {
-                echo 'Deploying the application...'
-                // Add your deployment commands here
+                echo "Deploying Docker container..."
+                // Optional: Stop and remove previous container
+                sh "docker rm -f ${IMAGE_NAME} || true"
+                // Run the new container
+                sh "docker run -d --name ${IMAGE_NAME} -p 80:80 ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline execution completed.'
-        }
         success {
-            echo 'Pipeline succeeded.'
+            echo "✅ Build and deployment completed successfully."
         }
         failure {
-            echo 'Pipeline failed.'
+            echo "❌ Pipeline failed. Check the steps for issues."
         }
     }
 }
